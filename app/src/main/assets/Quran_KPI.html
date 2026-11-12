@@ -81,15 +81,36 @@ nav.bt button.on{color:var(--hd)}nav.bt button.on .ic{background:#dcece4}
 .sr{display:grid;grid-template-columns:.9fr 1.5fr 1.1fr;gap:6px;padding:12px 16px;border-bottom:1px solid var(--ln);font-size:13px}.sr.hd{color:var(--mu);font-size:11px;letter-spacing:.4px;text-transform:uppercase;padding:8px 16px;background:var(--off)}.sr span{min-width:0}.sr span:last-child{text-align:right}.sr small{display:block;color:var(--mu);font-size:11px}.sr small.pass{color:var(--ok);font-weight:700}.sr small.fail{color:var(--bad);font-weight:700}.sr small.ov{color:var(--warn);font-weight:700}
 .sl{display:flex;justify-content:space-between;padding:6px 16px}.sl.t{border-top:2px solid var(--tx);margin-top:8px;padding-top:12px;font-size:17px;font-weight:700}.sl.t b{color:var(--ok)}.sf{padding:10px 16px 16px;color:var(--mu);font-size:12px;line-height:1.5}
 #toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translate(-50%,10px);background:#14261f;color:#fff;padding:10px 16px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s,transform .3s var(--ease);max-width:90%;text-align:center;z-index:30}#toast.on{opacity:1;transform:translate(-50%,0)}
+#sb{display:contents}
+@media(hover:hover){.btn:hover{background:var(--off)}.btn.p:hover{filter:brightness(1.12);background:linear-gradient(160deg,var(--hd),var(--hd2))}.nav button:hover{background:rgba(255,255,255,.14)}.ov2 .wr:hover{background:#f6d6d2}.dc input:hover,.f input:hover{border-color:var(--ln)}#md button:hover{background:var(--off)}#md button.y:hover{filter:brightness(1.1);background:var(--bad)}summary:hover{color:var(--hd)}}
+@media(min-width:900px){
+body{max-width:1160px;margin:0 auto;padding:28px 24px;display:grid;grid-template-columns:320px minmax(0,1fr);gap:28px;align-items:start}
+#sb{display:block;position:sticky;top:28px}
+header{position:static;border-radius:24px;padding:0 22px 22px;box-shadow:0 10px 30px rgba(14,51,41,.2)}
+.pay b{font-size:34px}
+nav.bt{position:static;display:flex;flex-direction:column;gap:4px;margin-top:16px;padding:8px;background:var(--card);border:0;border-radius:20px;box-shadow:var(--sh);-webkit-backdrop-filter:none;backdrop-filter:none}
+nav.bt button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;height:50px;padding:0 10px;border-radius:14px;font-size:14px;cursor:pointer;transition:color .25s,background .2s}
+nav.bt .ic{width:34px;height:34px;border-radius:11px}
+nav.bt button:hover{background:var(--off)}
+nav.bt button.on{background:#e6f1eb}nav.bt button.on .ic{background:#d3e7dc}
+#weeks{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;align-items:start}
+.card,.st{margin:0}
+#t0>p.m{margin:18px 4px 0!important}
+#t1{max-width:760px}#t1>div:last-child{margin:0!important}
+#t2.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+#toast{bottom:32px}
+.btn,.nav button,.wr,summary{cursor:pointer}
+}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
-@media(min-width:600px){body{max-width:560px;margin:0 auto}}
+@media(min-width:600px) and (max-width:899px){body{max-width:560px;margin:0 auto}}
 </style></head><body>
-<header><div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-8-1.6V18c3-.4 6 .1 8 1.6 2-1.5 5-2 8-1.6V4.4C17 4 14 4.5 12 6Z"/><path d="M12 6v13.6"/></svg></span><div><b>Quran KPI</b><small>Reading tracker</small></div></div>
+<aside id="sb"><header><div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-8-1.6V18c3-.4 6 .1 8 1.6 2-1.5 5-2 8-1.6V4.4C17 4 14 4.5 12 6Z"/><path d="M12 6v13.6"/></svg></span><div><b>Quran KPI</b><small>Reading tracker</small></div></div>
 <div class="nav"><button id="pv" aria-label="Previous month">‹</button><input type="month" id="mp"><button id="nx" aria-label="Next month">›</button></div>
 <div class="pay"><small>Final payable</small><b id="fp">Tk 0.00</b><span id="mx"></span></div></header>
+<nav class="bt"><button class="on" data-t="0"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>Entry</button><button data-t="1"><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg></span>Summary</button><button data-t="2"><span class="ic"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></svg></span>More</button></nav></aside>
 
 <main>
 <section class="tab on" id="t0"><div id="weeks"></div><p class="m" style="margin:10px 12px">Type paras read in each day. Type 0 if the student did not read. Friday is off.</p></section>
@@ -111,7 +132,7 @@ nav.bt button.on{color:var(--hd)}nav.bt button.on .ic{background:#dcece4}
 <p class="m">A week runs Saturday to Friday. Partial weeks scale by working days / 6. Pay anyway pays the salary only, never the bonus.</p></details></div>
 </section></main>
 
-<nav class="bt"><button class="on" data-t="0"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>Entry</button><button data-t="1"><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg></span>Summary</button><button data-t="2"><span class="ic"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></svg></span>More</button></nav>
+
 <div id="md"><div><p id="mt"></p><div class="r"><button id="mn">Cancel</button><button class="y" id="my">Yes, clear</button></div></div></div>
 <div id="toast"></div>
 <script>

@@ -5,8 +5,8 @@
 **An offline Quran reading KPI tracker & incentive payroll calculator for Android and Web.**
 
 <p align="center">
-  <a href="https://github.com/sayedmdsafwan/QuranKPI/releases/tag/v0.0.1">
-    <img alt="Latest Release" src="https://img.shields.io/badge/release-v0.0.1-15493C?style=flat-square&logo=github">
+  <a href="https://github.com/sayedmdsafwan/QuranKPI/releases/tag/v0.0.2">
+    <img alt="Latest Release" src="https://img.shields.io/badge/release-v0.0.2-15493C?style=flat-square&logo=github">
   </a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-Android-3DDC84?style=flat-square&logo=android&logoColor=white">
   <img alt="min SDK" src="https://img.shields.io/badge/min%20SDK-29%20(Android%2010)-15493C?style=flat-square">
@@ -21,8 +21,8 @@
 <br>
 
 <p align="center">
-  <a href="https://github.com/sayedmdsafwan/QuranKPI/releases/download/v0.0.1/QuranKPI-v0.0.1.apk">
-    <img alt="Download APK" src="https://img.shields.io/badge/⬇%20Download%20APK%20(v0.0.1)-15493C?style=for-the-badge&logo=android&logoColor=white" height="42">
+  <a href="https://github.com/sayedmdsafwan/QuranKPI/releases/download/v0.0.2/QuranKPI-v0.0.2.apk">
+    <img alt="Download APK" src="https://img.shields.io/badge/⬇%20Download%20APK%20(v0.0.2)-15493C?style=for-the-badge&logo=android&logoColor=white" height="42">
   </a>
   &nbsp;&nbsp;
   <a href="https://sayedmdsafwan.github.io/QuranKPI/">
@@ -80,6 +80,10 @@ Traditional spreadsheets are cumbersome to update on mobile devices, while cloud
 - **Zero Permissions**: The native app requests **0 runtime permissions**. It does not even ask for `android.permission.INTERNET`.
 - **Pure Local Storage**: All entries, customized rules, and salaries remain strictly in the device's local storage (`localStorage`).
 - **One-Tap JSON Backup & Restore**: Export the entire database into a timestamped `.json` file anytime, and restore it on any new device or browser.
+
+### 🖥️ Desktop & Web Optimized (v0.0.2)
+- **Responsive Workspace**: Seamlessly transforms on wider screens (900px+) into a 2-column layout with a sticky sidebar, side navigation, multi-column week grids, and interactive hover feedback.
+- **Zero Build / Static**: Pure CSS media queries (`@media(min-width:900px)`) with zero layout shift, preserving mobile shell performance while providing an expansive desktop web dashboard.
 
 ---
 
@@ -142,7 +146,7 @@ Quran KPI
 
 ### Option 1: Android Device (APK)
 1. Download the pre-built APK:  
-   👉 **[Download QuranKPI-v0.0.1.apk](https://github.com/sayedmdsafwan/QuranKPI/releases/download/v0.0.1/QuranKPI-v0.0.1.apk)**
+   👉 **[Download QuranKPI-v0.0.2.apk](https://github.com/sayedmdsafwan/QuranKPI/releases/download/v0.0.2/QuranKPI-v0.0.2.apk)**
 2. Open the downloaded file on your Android phone.
 3. If prompted by Android, grant permission to **Install unknown apps** for your browser or file manager.
 4. Tap **Install** and launch **Quran KPI**.
