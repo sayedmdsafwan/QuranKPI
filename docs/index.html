@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<!--
+  QURAN READING KPI - single-file, zero-dependency app (plain HTML/CSS/JS).
+  No library, CDN, font file or image is loaded, so it works fully offline.
+
+  ANDROID STUDIO / WEBVIEW NOTES (read before wrapping this file)
+  1. Put this file in app/src/main/assets/Quran_KPI.html and load it with
+       webView.loadUrl("file:///android_asset/Quran_KPI.html")
+  2. REQUIRED: webView.settings.javaScriptEnabled = true
+  3. REQUIRED: webView.settings.domStorageEnabled = true
+     Without it localStorage does not work and NO DATA IS SAVED.
+  4. The app stores everything in localStorage key "quranKPI.v1" (one JSON object).
+     Keep the same file path/URL every time, otherwise the saved data will not be found.
+     Do not clear WebView data on app start.
+  5. The page calls two OPTIONAL native hooks if they exist (see dl() and share() below):
+       window.Android.saveFile(fileName, textContent)   - save the JSON backup to phone storage
+       window.Android.shareImage(fileName, base64Png)   - share the statement image (WhatsApp etc.)
+     Expose them with webView.addJavascriptInterface(obj, "Android") and annotate
+     the methods with @JavascriptInterface. If a hook is missing, the page falls back
+     to the browser download / Web Share API, which usually does NOT work inside WebView.
+     Suggested native side: saveFile -> MediaStore.Downloads (Android 10+) or SAF;
+     shareImage -> decode base64, write to cacheDir, share via FileProvider + Intent.ACTION_SEND.
+  6. Backup file = JSON of the whole database. The "Restore from backup" button uses an
+     <input type="file">; in WebView this needs WebChromeClient.onShowFileChooser to be implemented.
+  7. The page uses its own dialog instead of confirm()/alert(), so no onJsConfirm handling is needed.
+-->
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Quran KPI</title>
+<style>
+:root{color-scheme:light;--bg:#f3f6f4;--card:#fff;--tx:#14261f;--mu:#6a7b73;--ln:#e1e8e4;--hd:#15493c;--hd2:#0e3329;--ac:#b9821a;--ok:#16794a;--bad:#b3261e;--warn:#9a6a00;--off:#eef2ef;--in:#f3f6f4;--sh:0 1px 2px rgba(16,40,30,.05),0 6px 20px rgba(16,40,30,.05);--ease:cubic-bezier(.22,.8,.3,1)}
+input,button{font-family:inherit}button:focus-visible,summary:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+header{position:sticky;top:-52px;z-index:5;background:linear-gradient(160deg,var(--hd),var(--hd2));color:#fff;padding:0 16px 16px;border-radius:0 0 26px 26px;box-shadow:0 8px 24px rgba(14,51,41,.22)}
+.brand{height:52px;display:flex;align-items:center;gap:10px}
+.logo{width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.14);display:grid;place-items:center}.logo svg{width:18px;height:18px;stroke:#f6d58a;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.brand b{display:block;font-size:17px;font-weight:700;letter-spacing:.2px;line-height:1.1}.brand small{display:block;font-size:11px;opacity:.7;letter-spacing:.3px;margin-top:2px}
+.nav{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.1);border-radius:14px;padding:4px}
+.nav button{width:40px;height:38px;border:0;border-radius:10px;background:transparent;color:#fff;font-size:22px;line-height:1;transition:background .2s,transform .15s}
+.nav button:active{background:rgba(255,255,255,.18);transform:scale(.92)}
+.nav input{flex:1;min-width:0;height:38px;border:0;border-radius:10px;background:transparent;color:#fff;font-weight:600;font-size:16px;text-align:center;color-scheme:dark}
+.pay{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;margin-top:14px}
+.pay small{flex:1 0 100%;opacity:.7;font-size:12px;letter-spacing:.4px;text-transform:uppercase}.pay b{font-size:30px;font-weight:700;color:#f6d58a;letter-spacing:.2px;line-height:1.1}.pay span{margin-left:auto;font-size:12px;opacity:.7}
+.pay b.pop{animation:pop .35s var(--ease)}
+.tab{display:none}.tab.on{display:block;animation:rise .3s var(--ease) both}
+.card{position:relative;background:var(--card);border-radius:18px;margin:12px 12px 0;padding:14px 14px 12px 18px;box-shadow:var(--sh);transition:box-shadow .3s}
+.card::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:4px;border-radius:0 4px 4px 0;background:var(--ln);transition:background .3s}
+.card.pass::before{background:var(--ok)}.card.fail::before{background:var(--bad)}.card.ov::before{background:var(--warn)}.card.open::before{background:var(--ln)}
+#weeks>.card{animation:rise .4s var(--ease) both}
+#weeks>.card:nth-child(2){animation-delay:.05s}#weeks>.card:nth-child(3){animation-delay:.1s}#weeks>.card:nth-child(4){animation-delay:.15s}#weeks>.card:nth-child(5){animation-delay:.2s}#weeks>.card:nth-child(6){animation-delay:.25s}
+.wh{display:flex;align-items:center;gap:8px;margin-bottom:10px}.wh b{font-size:15px}.dt{color:var(--mu);font-size:13px}
+.bd{margin-left:auto;border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--mu);background:var(--off);transition:background .3s,color .3s}
+.bd.pass{color:var(--ok);background:#e3f3ea}.bd.fail{color:var(--bad);background:#fbe8e6}.bd.ov{color:var(--warn);background:#fbf0d6}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dc{text-align:center;border-radius:10px;min-width:0}.dc small{display:block;font-size:10px;color:var(--mu);letter-spacing:.3px}.dc b{display:block;font-size:12px;margin-bottom:3px}
+.dc input{width:100%;height:42px;text-align:center;font-weight:600;font-size:16px;border:1.5px solid transparent;border-radius:10px;background:var(--in);color:var(--tx);padding:0;-moz-appearance:textfield;transition:border-color .2s,background .2s,box-shadow .2s}
+.dc input::placeholder{color:#b5c0ba;font-weight:400}
+.dc input:not(:placeholder-shown){background:#e6f1eb;color:var(--hd)}
+.dc input::-webkit-inner-spin-button,.dc input::-webkit-outer-spin-button{display:none}
+.dc input:focus,.f input:focus{outline:0;border-color:var(--ac);background:#fff;box-shadow:0 0 0 3px rgba(185,130,26,.18)}
+.dc.off{background:var(--off);color:var(--mu)}.dc i{display:block;height:42px;line-height:42px;font-style:normal;font-size:11px}
+.ws{margin-top:10px;font-size:13px;color:var(--mu);line-height:1.55}.ws b{color:var(--tx)}
+.ov2{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--ln);font-size:14px}.ov2 input{width:20px;height:20px;accent-color:var(--ok)}
+.f{display:flex;align-items:center;gap:10px;margin:8px 0}.f label{flex:1}.f input{width:110px;height:42px;border:1.5px solid transparent;border-radius:10px;background:var(--in);color:var(--tx);text-align:center;font-weight:600;font-size:16px;transition:border-color .2s,background .2s,box-shadow .2s}
+.btn{display:block;width:100%;height:48px;margin-top:10px;border:1px solid var(--ln);border-radius:14px;background:var(--card);color:var(--tx);font-weight:600;font-size:15px;transition:transform .15s,opacity .15s,background .2s}
+.btn:active,#md button:active,.wr:active{transform:scale(.97);opacity:.85}
+.btn.p{background:linear-gradient(160deg,var(--hd),var(--hd2));color:#fff;border:0;box-shadow:0 4px 14px rgba(14,51,41,.25)}.btn.d{color:var(--bad)}
+h3{margin:0 0 6px;font-size:16px}p.m{margin:2px 0 6px;color:var(--mu);font-size:13px}details{margin-top:2px}summary{padding:6px 0;font-weight:600;cursor:pointer}
+nav.bt{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--ln);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+nav.bt button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;color:var(--mu);font-weight:600;font-size:11.5px;padding:0;transition:color .25s}
+nav.bt .ic{width:56px;height:30px;border-radius:15px;display:grid;place-items:center;transition:background .3s var(--ease),transform .2s}
+nav.bt .ic svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.bt button:active .ic{transform:scale(.92)}
+nav.bt button.on{color:var(--hd)}nav.bt button.on .ic{background:#dcece4}
+.ov2 .wr{margin-left:auto;height:34px;padding:0 12px;border:0;border-radius:10px;background:#fbe8e6;color:var(--bad);font-weight:600;font-size:13px;transition:transform .15s,opacity .15s}
+#md{position:fixed;inset:0;z-index:20;background:rgba(10,24,19,.45);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:20px}#md.on{display:flex;animation:fade .2s ease both}
+#md>div{background:var(--card);color:var(--tx);border-radius:20px;padding:20px;width:100%;max-width:340px;box-shadow:0 20px 50px rgba(0,0,0,.25)}#md.on>div{animation:pop .28s var(--ease) both}#md p{margin:0 0 16px;line-height:1.5}#md .r{display:flex;gap:8px}#md button{flex:1;height:46px;border-radius:12px;border:1px solid var(--ln);background:var(--card);color:var(--tx);font-weight:600;font-size:15px;transition:transform .15s,opacity .15s}#md button.y{background:var(--bad);color:#fff;border:0}
+.st{background:var(--card);border-radius:20px;margin:12px;overflow:hidden;box-shadow:var(--sh)}.sh{background:linear-gradient(160deg,var(--hd),var(--hd2));color:#fff;padding:18px 16px}.sh b{display:block;font-size:18px}.sh span{opacity:.8;font-size:13px}.sh em{display:block;font-style:normal;margin-top:8px;font-weight:600;color:#f6d58a}
+.sp{padding:18px 14px;text-align:center;border-bottom:1px solid var(--ln)}.sp small{display:block;color:var(--mu);font-size:12px;letter-spacing:.4px;text-transform:uppercase}.sp b{display:block;font-size:34px;color:var(--ok);margin:2px 0}.sp span{font-size:12px;color:var(--mu)}
+.sr{display:grid;grid-template-columns:.9fr 1.5fr 1.1fr;gap:6px;padding:12px 16px;border-bottom:1px solid var(--ln);font-size:13px}.sr.hd{color:var(--mu);font-size:11px;letter-spacing:.4px;text-transform:uppercase;padding:8px 16px;background:var(--off)}.sr span{min-width:0}.sr span:last-child{text-align:right}.sr small{display:block;color:var(--mu);font-size:11px}.sr small.pass{color:var(--ok);font-weight:700}.sr small.fail{color:var(--bad);font-weight:700}.sr small.ov{color:var(--warn);font-weight:700}
+.sl{display:flex;justify-content:space-between;padding:6px 16px}.sl.t{border-top:2px solid var(--tx);margin-top:8px;padding-top:12px;font-size:17px;font-weight:700}.sl.t b{color:var(--ok)}.sf{padding:10px 16px 16px;color:var(--mu);font-size:12px;line-height:1.5}
+#toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));transform:translate(-50%,10px);background:#14261f;color:#fff;padding:10px 16px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s,transform .3s var(--ease);max-width:90%;text-align:center;z-index:30}#toast.on{opacity:1;transform:translate(-50%,0)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+@media(min-width:600px){body{max-width:560px;margin:0 auto}}
+</style></head><body>
+<header><div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-8-1.6V18c3-.4 6 .1 8 1.6 2-1.5 5-2 8-1.6V4.4C17 4 14 4.5 12 6Z"/><path d="M12 6v13.6"/></svg></span><div><b>Quran KPI</b><small>Reading tracker</small></div></div>
+<div class="nav"><button id="pv" aria-label="Previous month">‹</button><input type="month" id="mp"><button id="nx" aria-label="Next month">›</button></div>
+<div class="pay"><small>Final payable</small><b id="fp">Tk 0.00</b><span id="mx"></span></div></header>
+
+<main>
+<section class="tab on" id="t0"><div id="weeks"></div><p class="m" style="margin:10px 12px">Type paras read in each day. Type 0 if the student did not read. Friday is off.</p></section>
+<section class="tab" id="t1"><div id="sum"></div><div style="margin:0 10px"><button class="btn p" id="sh">Share as image</button></div></section>
+<section class="tab" id="t2">
+<div class="card open"><h3>This month</h3>
+<div class="f"><label for="nm">Student name (shown on summary)</label><input id="nm" type="text" maxlength="40" style="width:150px"></div>
+<div class="f"><label for="sal">Monthly salary (Tk)</label><input id="sal" type="number" inputmode="decimal" min="0"></div>
+<div class="f"><label for="bon">Full-month bonus (Tk)</label><input id="bon" type="number" inputmode="decimal" min="0"></div>
+<button class="btn d" id="rs">Reset this month's entries</button></div>
+<div class="card open"><h3>Backup</h3><p class="m">Your data stays on this phone. Save a backup file often, and restore it on a new phone or after clearing app data.</p>
+<button class="btn p" id="bj">Save backup (JSON)</button>
+<button class="btn" id="bi">Restore from backup</button><input type="file" id="fi" accept=".json,application/json" hidden></div>
+<div class="card open"><details><summary>Rules</summary>
+<div class="f"><label for="r1">Min days read per full week</label><input id="r1" type="number" inputmode="numeric" min="1"></div>
+<div class="f"><label for="r2">Min paras per full week</label><input id="r2" type="number" inputmode="decimal" min="0"></div>
+<div class="f"><label for="r3">Bonus target paras per week</label><input id="r3" type="number" inputmode="decimal" min="0"></div>
+<div class="f"><label for="r4">Max paras counted per day</label><input id="r4" type="number" inputmode="decimal" min="0.5"></div>
+<p class="m">A week runs Saturday to Friday. Partial weeks scale by working days / 6. Pay anyway pays the salary only, never the bonus.</p></details></div>
+</section></main>
+
+<nav class="bt"><button class="on" data-t="0"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>Entry</button><button data-t="1"><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg></span>Summary</button><button data-t="2"><span class="ic"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></svg></span>More</button></nav>
+<div id="md"><div><p id="mt"></p><div class="r"><button id="mn">Cancel</button><button class="y" id="my">Yes, clear</button></div></div></div>
+<div id="toast"></div>
+<script>
+/* ===== Core helpers and storage =====
+   Database shape (localStorage "quranKPI.v1"):
+   { rules:{days,paras,bonus,max,full}, name, last:"YYYY-MM",
+     months:{ "YYYY-MM":{ sal, bon, p:{day:paras}, ov:{weekIndex:1} } } } */
+const $=s=>document.querySelector(s),KEY='quranKPI.v1',DN=['Sat','Sun','Mon','Tue','Wed','Thu','Fri'],MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let db;try{db=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+db=db&&typeof db==='object'?db:{};db.rules=Object.assign({days:4,paras:6,bonus:9,max:2,full:6},db.rules);db.months=db.months||{};
+const t0=new Date(),today=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate());
+let cur={y:t0.getFullYear(),m:t0.getMonth()};
+const r2=x=>Math.round(x*100)/100,fm=x=>x.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}),key=()=>cur.y+'-'+String(cur.m+1).padStart(2,'0');
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
+/* In-page confirm dialog (WebView safe, replaces window.confirm). */
+function ask(t,y,label){$('#mt').textContent=t;$('#my').textContent=label||'Yes';$('#md').classList.add('on');$('#mn').onclick=()=>$('#md').classList.remove('on');$('#my').onclick=()=>{$('#md').classList.remove('on');y()}}
+function save(){db.last=key();try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){toast('Could not save. Storage is blocked or full.')}}
+function mo(){const k=key();if(!db.months[k]){const l=db.months[db.last]||{};db.months[k]={sal:l.sal??1000,bon:l.bon??200,p:{},ov:{}}}return db.months[k]}
+/* ===== Calculation engine =====
+   Week = Saturday to Friday, Friday off. Partial weeks scale by working days / full.
+   PASS: days read >= need AND paras >= needed. FAIL only when the week is closed.
+   Bonus: PASS and paras >= bonus target. Override pays salary only, never bonus. */
+function calc(){const M=mo(),R=db.rules,{y,m}=cur,n=new Date(y,m+1,0).getDate(),off=(new Date(y,m,1).getDay()+1)%7,W=[];
+for(let i=0;i<Math.ceil((n+off)/7);i++)W.push({wd:0,ent:0,read:0,paras:0,f:0,l:0});
+for(let d=1;d<=n;d++){const q=d-1+off,w=W[Math.floor(q/7)];if(!w.f)w.f=d;w.l=d;if(q%7==6)continue;w.wd++;const v=M.p[d];if(v!==undefined){w.ent++;const k=Math.min(Math.max(+v||0,0),R.max);w.paras+=k;if(k>0)w.read++}}
+const wt=W.reduce((a,w)=>a+w.wd,0)||1,daily=M.sal/wt,bpd=M.bon/wt,T={sal:0,ded:0,bon:0,pend:0,paras:0,read:0,tg:0,pass:0,fail:0,ov:0,open:0};
+W.forEach((w,i)=>{if(!w.wd)return;w.need=Math.ceil(R.days*w.wd/R.full);w.pn=R.paras*w.wd/R.full;w.bt=R.bonus*w.wd/R.full;
+const ok=w.read>=w.need&&r2(w.paras)>=r2(w.pn),closed=w.ent>=w.wd||(w.ent>0&&new Date(y,m,w.l)<today),ov=!!M.ov[i];
+if(ok){w.st='PASS';w.cls='pass'}else if(ov){w.st='PAID (OVERRIDE)';w.cls='ov'}else if(closed){w.st='FAIL';w.cls='fail'}else{w.st=w.ent?'IN PROGRESS':'PENDING';w.cls='open'}
+const v=daily*w.wd;w.sal=ok||ov?v:0;w.ded=w.cls=='fail'?v:0;w.bon=ok&&r2(w.paras)>=r2(w.bt)?bpd*w.wd:0;w.pend=w.cls=='open'?v:0;
+T.sal+=w.sal;T.ded+=w.ded;T.bon+=w.bon;T.pend+=w.pend;T.paras+=w.paras;T.read+=w.read;T.tg+=w.bt;T[w.cls]++});
+return{n,off,W,wt,daily,bpd,T,M}}
+/* ===== Rendering: render() rebuilds week cards, update() only refreshes numbers (keeps keyboard focus) ===== */
+function render(){const M=mo(),c=calc(),box=$('#weeks');box.innerHTML='';$('#mp').value=key();
+c.W.forEach((w,i)=>{const d=document.createElement('div');let g='';
+for(let p=0;p<7;p++){const day=i*7+p-c.off+1,ok=day>=1&&day<=c.n;
+if(!ok)g+=`<div class="dc off"><small>${DN[p]}</small><b>&nbsp;</b><i></i></div>`;
+else if(p==6)g+=`<div class="dc off"><small>Fri</small><b>${day}</b><i>Off</i></div>`;
+else g+=`<div class="dc"><small>${DN[p]}</small><b>${day}</b><input type="number" inputmode="decimal" min="0" max="${db.rules.max}" step="0.5" data-d="${day}" placeholder="–" value="${M.p[day]??''}" aria-label="Paras on day ${day}"></div>`}
+d.id='w'+i;d.innerHTML=`<div class="wh"><b>Week ${i+1}</b><span class="dt"></span><span class="bd"></span></div><div class="grid">${g}</div><div class="ws"></div><label class="ov2"><input type="checkbox" data-w="${i}" ${M.ov[i]?'checked':''}>Pay anyway (owner override)<button type="button" class="wr" data-r="${i}">Reset week</button></label>`;box.appendChild(d)});
+$('#nm').value=db.name||'';$('#sal').value=M.sal;$('#bon').value=M.bon;const R=db.rules;$('#r1').value=R.days;$('#r2').value=R.paras;$('#r3').value=R.bonus;$('#r4').value=R.max;update()}
+function update(){const c=calc(),{T,M}=c;
+c.W.forEach((w,i)=>{const d=$('#w'+i);if(!d)return;d.hidden=!w.wd;if(!w.wd)return;d.className='card '+w.cls;
+d.querySelector('.dt').textContent=w.f+(w.l>w.f?'–'+w.l:'')+' '+MN[cur.m].slice(0,3);const b=d.querySelector('.bd');b.textContent=w.st;b.className='bd '+w.cls;
+d.querySelector('.ws').innerHTML=`Days read <b>${w.read}/${w.need}</b>, paras <b>${r2(w.paras)}/${r2(w.pn)}</b>, bonus at <b>${r2(w.bt)}</b><br>Salary <b>Tk ${fm(w.sal)}</b>, bonus <b>Tk ${fm(w.bon)}</b>`});
+const fin=T.sal+T.bon;{const f=$('#fp'),v='Tk '+fm(fin);if(f.textContent!==v){f.textContent=v;f.classList.remove('pop');void f.offsetWidth;f.classList.add('pop')}}$('#mx').textContent='Max Tk '+fm(M.sal+M.bon);
+$('#sum').innerHTML=sumHTML()}
+$('#weeks').addEventListener('click',e=>{const i=e.target.dataset.r;if(i===undefined)return;const c=calc(),w=c.W[+i];
+ask('Clear all entries and the override for Week '+(+i+1)+'?',()=>{const M=mo();for(let d=w.f;d<=w.l;d++)delete M.p[d];delete M.ov[i];save();render();toast('Week '+(+i+1)+' reset')},'Yes, clear')});
+$('#weeks').addEventListener('change',e=>{const t=e.target,M=mo();
+if(t.dataset.d){const v=t.value.trim();if(v==='')delete M.p[t.dataset.d];else{let x=parseFloat(v);if(isNaN(x)||x<0)x=0;if(x>db.rules.max){x=db.rules.max;toast('Max '+x+' paras per day')}M.p[t.dataset.d]=x;t.value=x}}
+else if(t.dataset.w!==undefined){if(t.checked)M.ov[t.dataset.w]=1;else delete M.ov[t.dataset.w]}
+save();update()});
+const esc=t=>String(t).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+function stmt(){const c=calc();return{c,T:c.T,M:c.M,title:MN[cur.m]+' '+cur.y,name:db.name||'',fin:c.T.sal+c.T.bon,rows:c.W.map((w,i)=>w.wd?{wk:'Week '+(i+1),dt:w.f+(w.l>w.f?'–'+w.l:'')+' '+MN[cur.m].slice(0,3),pr:w.read+'/'+w.need+' days, '+r2(w.paras)+'/'+r2(w.pn)+' paras',st:w.st,cls:w.cls,sal:w.sal,bon:w.bon}:0).filter(Boolean)}}
+function sumHTML(){const s=stmt(),T=s.T,c=s.c,L=(a,b)=>`<div class="sl"><span>${a}</span><b>Tk ${fm(b)}</b></div>`;
+return `<div class="st"><div class="sh"><b>Quran Reading KPI</b><span>${s.title} statement</span>${s.name?`<em>${esc(s.name)}</em>`:''}</div>
+<div class="sp"><small>Final payable</small><b>Tk ${fm(s.fin)}</b><span>Salary Tk ${fm(T.sal)} plus bonus Tk ${fm(T.bon)}, maximum Tk ${fm(s.M.sal+s.M.bon)}</span></div>
+<div class="sr hd"><span>Week</span><span>Progress</span><span>Pay</span></div>
+${s.rows.map(r=>`<div class="sr"><span><b>${r.wk}</b><small>${r.dt}</small></span><span>${r.pr}<small class="${r.cls}">${r.st}</small></span><span><b>Tk ${fm(r.sal)}</b><small>+ Tk ${fm(r.bon)} bonus</small></span></div>`).join('')}
+<div style="height:8px"></div>${L('Salary earned',T.sal)}${L('Bonus earned',T.bon)}${L('Deducted (failed weeks)',T.ded)}${L('Pending (open weeks)',T.pend)}
+<div class="sl t"><span>Final payable</span><b>Tk ${fm(s.fin)}</b></div>
+<div class="sf">Attended ${T.read} of ${c.wt} working days, ${r2(T.paras)} paras read. Weeks passed ${T.pass}, failed ${T.fail}, paid by override ${T.ov}, open ${T.open}.</div></div>`}
+function draw(){const s=stmt(),T=s.T,c=s.c,W=540,rows=s.rows,hd=90+(s.name?24:0),cv=document.createElement('canvas');cv.width=W*2;cv.height=(hd+400+rows.length*54)*2;const x=cv.getContext('2d');x.scale(2,2);
+const F='"Segoe UI",Tahoma,sans-serif',t=(a,px,py,f,col,al)=>{x.font=f+' '+F;x.fillStyle=col;x.textAlign=al||'left';x.fillText(a,px,py)};
+x.fillStyle='#fff';x.fillRect(0,0,W,hd+400+rows.length*54);x.fillStyle='#15493c';x.fillRect(0,0,W,hd);
+t('Quran Reading KPI',24,40,'700 22px','#fff');t(s.title+' statement',24,66,'400 14px','#cfe3da');if(s.name)t(s.name,24,92,'600 15px','#f6d58a');
+let y=hd+44;t('Final payable',W/2,y,'400 14px','#5f7168','center');y+=44;t('Tk '+fm(s.fin),W/2,y,'700 40px','#16794a','center');y+=26;
+t('Salary Tk '+fm(T.sal)+' plus bonus Tk '+fm(T.bon),W/2,y,'400 13px','#5f7168','center');y+=22;
+x.fillStyle='#e3e9e5';x.fillRect(0,y,W,28);t('Week',24,y+19,'600 12px','#5f7168');t('Progress',130,y+19,'600 12px','#5f7168');t('Pay',W-24,y+19,'600 12px','#5f7168','right');y+=28;
+const col={pass:'#16794a',fail:'#b3261e',ov:'#9a6a00',open:'#5f7168'};
+rows.forEach(r=>{t(r.wk,24,y+22,'600 14px','#173028');t(r.dt,24,y+40,'400 12px','#5f7168');t(r.pr,130,y+22,'400 13px','#173028');t(r.st,130,y+40,'700 12px',col[r.cls]);t('Tk '+fm(r.sal),W-24,y+22,'600 14px','#173028','right');t('+ Tk '+fm(r.bon)+' bonus',W-24,y+40,'400 12px','#5f7168','right');x.fillStyle='#d5ded9';x.fillRect(0,y+53,W,1);y+=54});
+y+=10;[['Salary earned',T.sal],['Bonus earned',T.bon],['Deducted (failed weeks)',T.ded],['Pending (open weeks)',T.pend]].forEach(l=>{t(l[0],24,y+14,'400 14px','#173028');t('Tk '+fm(l[1]),W-24,y+14,'600 14px','#173028','right');y+=28});
+x.fillStyle='#173028';x.fillRect(24,y+2,W-48,2);y+=30;t('Final payable',24,y,'700 18px','#173028');t('Tk '+fm(s.fin),W-24,y,'700 18px','#16794a','right');y+=30;
+t('Attended '+T.read+' of '+c.wt+' working days, '+r2(T.paras)+' paras read',24,y,'400 12px','#5f7168');y+=18;t('Weeks passed '+T.pass+', failed '+T.fail+', paid by override '+T.ov+', open '+T.open,24,y,'400 12px','#5f7168');return cv}
+/* ===== Share statement as image (canvas, no library) =====
+   WEBVIEW HOOK: window.Android.shareImage(name, base64Png) is used when available. */
+async function share(){const cv=draw(),name='Quran_KPI_'+key()+'.png';
+if(window.Android&&window.Android.shareImage){window.Android.shareImage(name,cv.toDataURL('image/png').split(',')[1]);return}
+const blob=await new Promise(r=>cv.toBlob(r,'image/png')),f=new File([blob],name,{type:'image/png'});
+if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'Quran KPI '+MN[cur.m]+' '+cur.y})}catch(e){}return}
+const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},800);toast('Sharing is not supported here. Image saved instead.')}
+$('#sh').onclick=share;
+$('#nm').addEventListener('change',e=>{db.name=e.target.value.trim();save();update()});
+const num=(id,f)=>$(id).addEventListener('change',e=>{const v=parseFloat(e.target.value);f(isNaN(v)||v<0?0:v);save();render()});
+num('#sal',v=>mo().sal=v);num('#bon',v=>mo().bon=v);num('#r1',v=>db.rules.days=v||1);num('#r2',v=>db.rules.paras=v);num('#r3',v=>db.rules.bonus=v);num('#r4',v=>db.rules.max=v||2);
+function go(d){cur.m+=d;if(cur.m<0){cur.m=11;cur.y--}if(cur.m>11){cur.m=0;cur.y++}render()}
+$('#pv').onclick=()=>go(-1);$('#nx').onclick=()=>go(1);
+$('#mp').addEventListener('change',e=>{const p=e.target.value.split('-');if(p.length==2){cur={y:+p[0],m:+p[1]-1};render()}});
+document.querySelectorAll('nav.bt button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav.bt button,.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#t'+b.dataset.t).classList.add('on');scrollTo(0,0)});
+$('#rs').onclick=()=>ask('Clear all entries and overrides for '+MN[cur.m]+' '+cur.y+'? Salary and bonus stay. Save a backup first if unsure.',()=>{const M=mo();M.p={};M.ov={};save();render();toast('Month reset')},'Yes, clear');
+/* ===== Backup (JSON) =====
+   WEBVIEW HOOK: window.Android.saveFile(name, text) is used when available. */
+function dl(name,text,mime){if(window.Android&&window.Android.saveFile){window.Android.saveFile(name,text);return}
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},800);toast('Saved '+name)}
+const stamp=()=>new Date().toISOString().slice(0,10);
+$('#bj').onclick=()=>dl('Quran_KPI_backup_'+stamp()+'.json',JSON.stringify(db,null,1),'application/json');
+$('#bi').onclick=()=>$('#fi').click();
+/* Restore: needs WebChromeClient.onShowFileChooser inside Android WebView. */
+$('#fi').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||typeof o.months!=='object')throw 0;
+ask('Replace all current data with this backup?',()=>{db=o;db.rules=Object.assign({days:4,paras:6,bonus:9,max:2,full:6},db.rules);save();render();toast('Backup restored')},'Yes, restore')}catch(x){toast('This is not a valid backup file')}e.target.value=''};rd.readAsText(f)});
+render();
+</script></body></html>
