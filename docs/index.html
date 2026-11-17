@@ -142,8 +142,10 @@ nav.bt button.on{background:#e6f1eb}nav.bt button.on .ic{background:#d3e7dc}
      months:{ "YYYY-MM":{ sal, bon, p:{day:paras}, ov:{weekIndex:1} } } } */
 const $=s=>document.querySelector(s),KEY='quranKPI.v1',DN=['Sat','Sun','Mon','Tue','Wed','Thu','Fri'],MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
 let db;try{db=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-db=db&&typeof db==='object'?db:{};db.rules=Object.assign({days:4,paras:6,bonus:9,max:2,full:6},db.rules);db.months=db.months||{};
-const t0=new Date(),today=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate());
+/* Rules defaults. rv=2 migration: old saved data had min days 4, it becomes 3 once (also applied on restore). */
+function fixRules(o){o.rules=Object.assign({days:3,paras:6,bonus:9,max:2,full:6},o.rules);if(o.rv!==2){if(o.rules.days===4)o.rules.days=3;o.rv=2}}
+db=db&&typeof db==='object'?db:{};fixRules(db);db.months=db.months||{};
+const t0=new Date();
 let cur={y:t0.getFullYear(),m:t0.getMonth()};
 const r2=x=>Math.round(x*100)/100,fm=x=>x.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}),key=()=>cur.y+'-'+String(cur.m+1).padStart(2,'0');
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
@@ -155,9 +157,10 @@ function mo(){const k=key();if(!db.months[k]){const l=db.months[db.last]||{};db.
    Week = Saturday to Friday, Friday off. Partial weeks scale by working days / full.
    PASS: days read >= need AND paras >= needed. FAIL only when the week is closed.
    Bonus: PASS and paras >= bonus target. Override pays salary only, never bonus. */
-function calc(){const M=mo(),R=db.rules,{y,m}=cur,n=new Date(y,m+1,0).getDate(),off=(new Date(y,m,1).getDay()+1)%7,W=[];
+function calc(){const td=new Date(),today=new Date(td.getFullYear(),td.getMonth(),td.getDate()),M=mo(),R=db.rules,{y,m}=cur,n=new Date(y,m+1,0).getDate(),off=(new Date(y,m,1).getDay()+1)%7,W=[];
 for(let i=0;i<Math.ceil((n+off)/7);i++)W.push({wd:0,ent:0,read:0,paras:0,f:0,l:0});
 for(let d=1;d<=n;d++){const q=d-1+off,w=W[Math.floor(q/7)];if(!w.f)w.f=d;w.l=d;if(q%7==6)continue;w.wd++;const v=M.p[d];if(v!==undefined){w.ent++;const k=Math.min(Math.max(+v||0,0),R.max);w.paras+=k;if(k>0)w.read++}}
+let k=0;W.forEach(w=>{if(w.wd)w.no=++k});
 const wt=W.reduce((a,w)=>a+w.wd,0)||1,daily=M.sal/wt,bpd=M.bon/wt,T={sal:0,ded:0,bon:0,pend:0,paras:0,read:0,tg:0,pass:0,fail:0,ov:0,open:0};
 W.forEach((w,i)=>{if(!w.wd)return;w.need=Math.ceil(R.days*w.wd/R.full);w.pn=R.paras*w.wd/R.full;w.bt=R.bonus*w.wd/R.full;
 const ok=w.read>=w.need&&r2(w.paras)>=r2(w.pn),closed=w.ent>=w.wd||(w.ent>0&&new Date(y,m,w.l)<today),ov=!!M.ov[i];
@@ -172,7 +175,7 @@ for(let p=0;p<7;p++){const day=i*7+p-c.off+1,ok=day>=1&&day<=c.n;
 if(!ok)g+=`<div class="dc off"><small>${DN[p]}</small><b>&nbsp;</b><i></i></div>`;
 else if(p==6)g+=`<div class="dc off"><small>Fri</small><b>${day}</b><i>Off</i></div>`;
 else g+=`<div class="dc"><small>${DN[p]}</small><b>${day}</b><input type="number" inputmode="decimal" min="0" max="${db.rules.max}" step="0.5" data-d="${day}" placeholder="–" value="${M.p[day]??''}" aria-label="Paras on day ${day}"></div>`}
-d.id='w'+i;d.innerHTML=`<div class="wh"><b>Week ${i+1}</b><span class="dt"></span><span class="bd"></span></div><div class="grid">${g}</div><div class="ws"></div><label class="ov2"><input type="checkbox" data-w="${i}" ${M.ov[i]?'checked':''}>Pay anyway (owner override)<button type="button" class="wr" data-r="${i}">Reset week</button></label>`;box.appendChild(d)});
+d.id='w'+i;d.innerHTML=`<div class="wh"><b>Week ${w.no||''}</b><span class="dt"></span><span class="bd"></span></div><div class="grid">${g}</div><div class="ws"></div><label class="ov2"><input type="checkbox" data-w="${i}" ${M.ov[i]?'checked':''}>Pay anyway (owner override)<button type="button" class="wr" data-r="${i}">Reset week</button></label>`;box.appendChild(d)});
 $('#nm').value=db.name||'';$('#sal').value=M.sal;$('#bon').value=M.bon;const R=db.rules;$('#r1').value=R.days;$('#r2').value=R.paras;$('#r3').value=R.bonus;$('#r4').value=R.max;update()}
 function update(){const c=calc(),{T,M}=c;
 c.W.forEach((w,i)=>{const d=$('#w'+i);if(!d)return;d.hidden=!w.wd;if(!w.wd)return;d.className='card '+w.cls;
@@ -181,13 +184,13 @@ d.querySelector('.ws').innerHTML=`Days read <b>${w.read}/${w.need}</b>, paras <b
 const fin=T.sal+T.bon;{const f=$('#fp'),v='Tk '+fm(fin);if(f.textContent!==v){f.textContent=v;f.classList.remove('pop');void f.offsetWidth;f.classList.add('pop')}}$('#mx').textContent='Max Tk '+fm(M.sal+M.bon);
 $('#sum').innerHTML=sumHTML()}
 $('#weeks').addEventListener('click',e=>{const i=e.target.dataset.r;if(i===undefined)return;const c=calc(),w=c.W[+i];
-ask('Clear all entries and the override for Week '+(+i+1)+'?',()=>{const M=mo();for(let d=w.f;d<=w.l;d++)delete M.p[d];delete M.ov[i];save();render();toast('Week '+(+i+1)+' reset')},'Yes, clear')});
+ask('Clear all entries and the override for Week '+w.no+'?',()=>{const M=mo();for(let d=w.f;d<=w.l;d++)delete M.p[d];delete M.ov[i];save();render();toast('Week '+w.no+' reset')},'Yes, clear')});
 $('#weeks').addEventListener('change',e=>{const t=e.target,M=mo();
 if(t.dataset.d){const v=t.value.trim();if(v==='')delete M.p[t.dataset.d];else{let x=parseFloat(v);if(isNaN(x)||x<0)x=0;if(x>db.rules.max){x=db.rules.max;toast('Max '+x+' paras per day')}M.p[t.dataset.d]=x;t.value=x}}
 else if(t.dataset.w!==undefined){if(t.checked)M.ov[t.dataset.w]=1;else delete M.ov[t.dataset.w]}
 save();update()});
 const esc=t=>String(t).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-function stmt(){const c=calc();return{c,T:c.T,M:c.M,title:MN[cur.m]+' '+cur.y,name:db.name||'',fin:c.T.sal+c.T.bon,rows:c.W.map((w,i)=>w.wd?{wk:'Week '+(i+1),dt:w.f+(w.l>w.f?'–'+w.l:'')+' '+MN[cur.m].slice(0,3),pr:w.read+'/'+w.need+' days, '+r2(w.paras)+'/'+r2(w.pn)+' paras',st:w.st,cls:w.cls,sal:w.sal,bon:w.bon}:0).filter(Boolean)}}
+function stmt(){const c=calc();return{c,T:c.T,M:c.M,title:MN[cur.m]+' '+cur.y,name:db.name||'',fin:c.T.sal+c.T.bon,rows:c.W.map((w,i)=>w.wd?{wk:'Week '+w.no,dt:w.f+(w.l>w.f?'–'+w.l:'')+' '+MN[cur.m].slice(0,3),pr:w.read+'/'+w.need+' days, '+r2(w.paras)+'/'+r2(w.pn)+' paras',st:w.st,cls:w.cls,sal:w.sal,bon:w.bon}:0).filter(Boolean)}}
 function sumHTML(){const s=stmt(),T=s.T,c=s.c,L=(a,b)=>`<div class="sl"><span>${a}</span><b>Tk ${fm(b)}</b></div>`;
 return `<div class="st"><div class="sh"><b>Quran Reading KPI</b><span>${s.title} statement</span>${s.name?`<em>${esc(s.name)}</em>`:''}</div>
 <div class="sp"><small>Final payable</small><b>Tk ${fm(s.fin)}</b><span>Salary Tk ${fm(T.sal)} plus bonus Tk ${fm(T.bon)}, maximum Tk ${fm(s.M.sal+s.M.bon)}</span></div>
@@ -233,6 +236,6 @@ $('#bj').onclick=()=>dl('Quran_KPI_backup_'+stamp()+'.json',JSON.stringify(db,nu
 $('#bi').onclick=()=>$('#fi').click();
 /* Restore: needs WebChromeClient.onShowFileChooser inside Android WebView. */
 $('#fi').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);if(!o||typeof o.months!=='object')throw 0;
-ask('Replace all current data with this backup?',()=>{db=o;db.rules=Object.assign({days:4,paras:6,bonus:9,max:2,full:6},db.rules);save();render();toast('Backup restored')},'Yes, restore')}catch(x){toast('This is not a valid backup file')}e.target.value=''};rd.readAsText(f)});
+ask('Replace all current data with this backup?',()=>{db=o;fixRules(db);save();render();toast('Backup restored')},'Yes, restore')}catch(x){toast('This is not a valid backup file')}e.target.value=''};rd.readAsText(f)});
 render();
 </script></body></html>

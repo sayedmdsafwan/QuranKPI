@@ -5,8 +5,8 @@
 **An offline Quran reading KPI tracker & incentive payroll calculator for Android and Web.**
 
 <p align="center">
-  <a href="https://github.com/sayedmdsafwan/QuranKPI/releases/tag/v0.0.2">
-    <img alt="Latest Release" src="https://img.shields.io/badge/release-v0.0.2-15493C?style=flat-square&logo=github">
+  <a href="https://github.com/sayedmdsafwan/QuranKPI/releases/tag/v0.0.3">
+    <img alt="Latest Release" src="https://img.shields.io/badge/release-v0.0.3-15493C?style=flat-square&logo=github">
   </a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-Android-3DDC84?style=flat-square&logo=android&logoColor=white">
   <img alt="min SDK" src="https://img.shields.io/badge/min%20SDK-29%20(Android%2010)-15493C?style=flat-square">
@@ -21,8 +21,8 @@
 <br>
 
 <p align="center">
-  <a href="https://github.com/sayedmdsafwan/QuranKPI/releases/download/v0.0.2/QuranKPI-v0.0.2.apk">
-    <img alt="Download APK" src="https://img.shields.io/badge/⬇%20Download%20APK%20(v0.0.2)-15493C?style=for-the-badge&logo=android&logoColor=white" height="42">
+  <a href="https://github.com/sayedmdsafwan/QuranKPI/releases/download/v0.0.3/QuranKPI-v0.0.3.apk">
+    <img alt="Download APK" src="https://img.shields.io/badge/⬇%20Download%20APK%20(v0.0.3)-15493C?style=for-the-badge&logo=android&logoColor=white" height="42">
   </a>
   &nbsp;&nbsp;
   <a href="https://sayedmdsafwan.github.io/QuranKPI/">
@@ -81,7 +81,7 @@ Traditional spreadsheets are cumbersome to update on mobile devices, while cloud
 - **Pure Local Storage**: All entries, customized rules, and salaries remain strictly in the device's local storage (`localStorage`).
 - **One-Tap JSON Backup & Restore**: Export the entire database into a timestamped `.json` file anytime, and restore it on any new device or browser.
 
-### 🖥️ Desktop & Web Optimized (v0.0.2)
+### 🖥️ Desktop & Web Optimized
 - **Responsive Workspace**: Seamlessly transforms on wider screens (900px+) into a 2-column layout with a sticky sidebar, side navigation, multi-column week grids, and interactive hover feedback.
 - **Zero Build / Static**: Pure CSS media queries (`@media(min-width:900px)`) with zero layout shift, preserving mobile shell performance while providing an expansive desktop web dashboard.
 
@@ -94,14 +94,14 @@ Each calendar month is segmented into Saturday-to-Friday weeks:
 | Parameter | Default Value | Description |
 | :--- | :---: | :--- |
 | **Full Week Working Days** | 6 days | Saturday through Thursday (Friday off) |
-| **Min Days Read / Full Week** | 4 days | Attendance requirement |
+| **Min Days Read / Full Week** | 3 days | Attendance requirement |
 | **Min Paras / Full Week** | 6.0 paras | Volume requirement |
 | **Bonus Target / Full Week** | 9.0 paras | Quota required to unlock bonus |
 | **Max Counted / Day** | 2.0 paras | Cap to prevent cramming and foster consistent daily reading |
 
 ### Scaling & Math:
 1. **Working Days Weight**: For any week $i$ with $W_i$ working days:
-   $$\text{Required Days}_i = \left\lceil 4 \times \frac{W_i}{6} \right\rceil, \quad \text{Required Paras}_i = 6 \times \frac{W_i}{6}$$
+   $$\text{Required Days}_i = \left\lceil 3 \times \frac{W_i}{6} \right\rceil, \quad \text{Required Paras}_i = 6 \times \frac{W_i}{6}$$
 2. **Daily Earnings Rate**:
    $$\text{Daily Salary} = \frac{\text{Monthly Salary}}{\sum W_i}, \quad \text{Daily Bonus} = \frac{\text{Monthly Bonus}}{\sum W_i}$$
 3. **Week Status**:
@@ -146,7 +146,7 @@ Quran KPI
 
 ### Option 1: Android Device (APK)
 1. Download the pre-built APK:  
-   👉 **[Download QuranKPI-v0.0.2.apk](https://github.com/sayedmdsafwan/QuranKPI/releases/download/v0.0.2/QuranKPI-v0.0.2.apk)**
+   👉 **[Download QuranKPI-v0.0.3.apk](https://github.com/sayedmdsafwan/QuranKPI/releases/download/v0.0.3/QuranKPI-v0.0.3.apk)**
 2. Open the downloaded file on your Android phone.
 3. If prompted by Android, grant permission to **Install unknown apps** for your browser or file manager.
 4. Tap **Install** and launch **Quran KPI**.
